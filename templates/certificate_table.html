@@ -1,0 +1,121 @@
+{% extends "layout.html" %}
+{% block body %}
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+                <div style="padding: 5px">
+
+                </div>
+                    <!-- DataTales Example -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            
+                        <a class="btn btn-primary btn-icon-split mb-2 mr-2" id="add_certificate" onclick="addCertificate('{{grp_id}}')" style="cursor: pointer">
+                                        <span class="icon text-white-50">
+                                           <i class="fa fa-plus" aria-hidden="true"></i>
+                                        </span>
+                                        <span class="text">Add Certificate</span>
+                        </a>
+                    <a class="btn btn-success btn-icon-split" id="import_certificate" style="cursor: pointer" href="/certificate/mass-generate/{{grp_id}}">
+                        <span class="text">Bulk Certify</span>
+                    </a>
+
+                    <a class="btn btn-success btn-icon-split float-right" id="import_certificate" style="cursor: pointer" onclick="uploadFile('{{grp_id}}')">
+                        <span class="icon text-white-50">
+                           <i class="fa fa-upload" aria-hidden="true"></i>
+                        </span>
+                        <span class="text">Import CSV</span>                                    
+                    </a>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Name</th>
+                                            <th>Number</th>
+                                            <th>Email</th>
+                                            <th>Email Sent</th>
+                                            <th>Generate</th>
+                                            <th>Edit</th>
+                                            <th>Delete</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+{#                                    Start loop#}
+{% for post in post %}
+                                        <tr>
+                                            <td>{{ post.id}}</td>
+                                            <td>{{ post.name}}</td>
+                                            <td>{{ post.number }}</td>
+                                            <td>{{ post.email }}</td>
+                                            <td class="text-center">
+                                                <a
+                                                style="cursor: pointer"
+                                                class="btn {{'btn-success' if post.is_email_sent else 'btn-danger'}} btn-circle"
+                                                >
+                                                <i
+                                                    class="fas {{'fa-check' if post.is_email_sent else 'fa-times'}}"
+                                                ></i>
+                                            </td>
+                                            <td><a href="/certificate/generate/{{ post.number }}" target="_blank" class="btn btn-success btn-circle"><i class="fas fa-check"></i></a></td>
+                                            <td><a onclick="editCertificate('{{grp_id}}','{{post.id}}')" class="btn btn-success btn-circle" id="edit_certificate" style="cursor: pointer"><i class="fas fa-edit"></i></a></td>
+                                            <td><a href="/delete/{{ grp_id }}/certificates/{{ post.id }}" class="btn btn-danger btn-circle"><i class="fas fa-trash"></i></a></td>
+                                        </tr>
+
+{#                                    end loop#}
+{% endfor %}
+
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- /.container-fluid -->
+                {% with errors = get_flashed_messages(category_filter=["danger"]) %}
+                    {% if errors %}
+                    {% for error in errors %}
+                    <script>
+                        new Notify ({
+                        title: 'Error',
+                        text: `{{error|safe}}`,
+                        status: 'error'
+                        })
+                    </script>
+                    {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+                    {% with messages = get_flashed_messages(category_filter=["success"]) %}
+                    {% if messages %}
+                    {% for message in messages %}
+                    <script>
+                        new Notify ({
+                            title: 'Success',
+                            text: `{{message|safe}}`,
+                            status: 'success'
+                            })
+                        </script>                      
+                    {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+<script>
+    function showLoader(){
+        Swal.fire({
+            title: 'Sending Email',
+            icon: 'info',
+            html:
+                '<div class="spinner-border text-primary" role="status">'+
+                '<span class="sr-only">Loading...</span>'+
+                '</div>',
+            footer:"Note : Duplicate won't be sent.",
+            showCloseButton: false,
+            showCancelButton: false,
+            showConfirmButton: false,
+            focusConfirm: false,
+            })
+    }
+</script>
+                        
+            {% endblock %}
