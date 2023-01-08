@@ -361,6 +361,8 @@ function addCertificate(grp_id) {
   });
 }
 
+
+
 // For editing Certificate
 function editCertificate(grp_id, cert_id) {
   fetch(`/edit/${grp_id}/certificates/${cert_id}`, {
@@ -824,3 +826,17 @@ $("#add_font").click(function (e) {
     }
   });
 });
+
+// Bulk Certify
+function bulkCertify(BULK_CERTIFY_URL, group_no) {
+  console.log(BULK_CERTIFY_URL)
+  console.log(group_no)
+  console.log("Calling Bulk Certify")
+  fetch(BULK_CERTIFY_URL + "?group_no=" + group_no, {
+    method: "GET",
+  })
+    .then(res => {
+      console.log("Bulk certify done")
+      console.log(res)
+})
+}

@@ -7,6 +7,12 @@ import io
 import webbrowser
 from time import sleep
 
+from dotenv import load_dotenv
+load_dotenv()
+
+APP_URL = os.environ.get("APP_URL")
+BULK_CERTIFY_URL = os.environ.get("BULK_CERTIFY_URL")
+
 app = Flask(__name__)
 
 app.secret_key = "GDSCSJEC"
@@ -106,7 +112,7 @@ def edit_org_page(id):
                     except Exception:
                         pass
                     bg_image.save(f"static/backgrounds/{img_name}.png")
-                    bg_url = f"http://127.0.0.1:5000/static/backgrounds/{img_name}.png"
+                    bg_url = f"{APP_URL}/static/backgrounds/{img_name}.png"
                 post.bg_image = bg_url
                 db.session.add(post)
                 db.session.commit()
@@ -127,7 +133,7 @@ def edit_org_page(id):
                         pass
                     else:
                         bg_image.save(f"static/backgrounds/{name}")
-                        bg_url = f"http://127.0.0.1:5000/static/backgrounds/{name}"
+                        bg_url = f"{APP_URL}/static/backgrounds/{name}"
                 post.bg_image = bg_url
                 post.date = date
                 post.certx = certx
@@ -158,7 +164,7 @@ def edit_org_page(id):
         "font_name": grp.font_name,
         "textColor": grp.textColor,
     }
-    return jsonify(favTitle='pk', id=id, post=post)
+    return jsonify(favTitle='Certify', id=id, post=post)
 
 @app.route("/view/groups", methods=['GET', 'POST'])
 def view_org_page():
@@ -169,7 +175,7 @@ def view_org_page():
 @app.route("/view/<string:grp_id>/certificates", methods=['GET', 'POST'])
 def view_certificate_page(grp_id):
     post = Certificate.query.filter_by(group_id=grp_id).order_by(Certificate.id)
-    return render_template('certificate_table.html', post=post, grp_id=grp_id)
+    return render_template('certificate_table.html', post=post, grp_id=grp_id, BULK_CERTIFY_URL=BULK_CERTIFY_URL)
 
 
 @app.route("/edit/<string:grp_id>/certificates/<string:id>", methods=['GET', 'POST'])
@@ -360,24 +366,42 @@ def upload_csv(grp_id):
 
 @app.route("/certificate/mass-generate/<string:groupno>")
 def massGenerate(groupno):
-    certnoList = Certificate.query.filter_by(group_id = groupno).limit(3).all()
+    certificate_list = Certificate.query.filter_by(group_id = groupno).limit(3).all()
+
+    response = {}
+
+    response["group_no"] = groupno
+    response["certificates"] = []
+
+    for certificate in certificate_list:
+        response["certificates"].append({
+            "certificate_no": certificate.number,
+            "certficate_link": APP_URL + "/certificate/generate/" +  certificate.number
+        })
+
+    return jsonify(response)
+
     # print(certnoList)
     # print(certnoList[0].group_id)
 
     # posto = Group.query.filter_by(id=groupno).first()
     # postf = Fonts.query.filter_by(name=posto.font_name).first()
 
-    for member in certnoList:
-        # page = render_template("certificate.html", postf=postf, postc=member, posto=posto, number=member.number, bulk = 1)
-        # print(type(page))
-        # return redirect(url_for(certificate_generate(), postf=postf, postc=member, posto=posto, number=member.number, bulk = 1))
-        webbrowser.open(
-            f"http://127.0.0.1:5000/certificate/generate/{member.number}"
-        )
-        sleep(2)
+    
+
+    # for member in certnoList:
+    #     # page = render_template("certificate.html", postf=postf, postc=member, posto=posto, number=member.number, bulk = 1)
+    #     # print(type(page))
+    #     # return redirect(url_for(certificate_generate(), postf=postf, postc=member, posto=posto, number=member.number, bulk = 1))
+    #     webbrowser.open(
+    #         f"http://127.0.0.1:5000/certificate/generate/{member.number}"
+    #     )
+    #     sleep(2)
+
+    
 
 
-    return "All Files Downloaded"
+    # return "All Files Downloaded"
 
 if __name__ == '__main__':
     db.create_all()
