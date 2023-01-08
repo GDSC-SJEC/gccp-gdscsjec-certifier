@@ -4,14 +4,12 @@ import datetime, os
 import json
 import csv
 import io
-import webbrowser
-from time import sleep
 
 from dotenv import load_dotenv
 load_dotenv()
 
-APP_URL = os.environ.get("APP_URL")
-BULK_CERTIFY_URL = os.environ.get("BULK_CERTIFY_URL")
+APP_URL = os.environ.get("APP_URL", "test")
+BULK_CERTIFY_URL = os.environ.get("BULK_CERTIFY_URL", "test")
 
 app = Flask(__name__)
 
@@ -68,6 +66,8 @@ class QRCode(db.Model):
     qr_code = db.Column(db.String(100), nullable=True)
     certificate_id = db.Column(db.Integer, db.ForeignKey('certificate.id'))
 
+app.app_context().push()
+db.create_all()
 
 @app.route("/")
 def dashboard_page():
@@ -405,4 +405,4 @@ def massGenerate(groupno):
 
 if __name__ == '__main__':
     db.create_all()
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
