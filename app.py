@@ -5,6 +5,7 @@ import json
 import csv
 import io
 from google.cloud import storage
+from zipfile import ZipFile
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -68,13 +69,6 @@ class QRCode(db.Model):
     link = db.Column(db.String(200), nullable=False)
     qr_code = db.Column(db.String(100), nullable=True)
     certificate_id = db.Column(db.Integer, db.ForeignKey('certificate.id'))
-
-def insert_fonts():
-    font1 = Fonts(name='Times New Roman', font_cdn='https://fonts.cdnfonts.com/css/times-new-roman')
-    font2 = Fonts(name='Open Sans', font_cdn='https://fonts.cdnfonts.com/css/open-sans')
-    db.session.add(font1)
-    db.session.add(font2)
-    db.session.commit()
 
 
 @app.route("/")
@@ -309,13 +303,25 @@ def massGenerate(groupno):
 @app.route("/download-zip/<string:groupno>")
 def downloadzip(groupno):
     storage_client = storage.Client()
-
+    zipper = ZipFile(f"{os.getcwd()}/certificates.zip", 'w')
     for blob in storage_client.list_blobs(CLOUD_STORAGE_BUCKET, prefix=groupno):
         print(blob.name)
-        blob.download_to_filename("1.png")
-    return "Hello"
+        blob.download_to_filename(f"{blob.name}.png")
+        zipper.write(f"{blob.name}.png")
+
+    zipper.close()
+    return send_from_directory(os.getcwd(), "certificates.zip", as_attachment=True)
+
+def add_default_fonts():
+    total = len(Fonts.query.all())
+    if total == 0:
+        TimesNewRoman = Fonts(name="Times New Roman", font_cdn="https://fonts.cdnfonts.com/css/times-new-roman")
+        OpenSans = Fonts(name="Open Sans", font_cdn="https://fonts.cdnfonts.com/css/open-sans")
+        db.session.add(TimesNewRoman)
+        db.session.add(OpenSans)
+        db.session.commit()
 
 if __name__ == '__main__':
     db.create_all()
-    insert_fonts()
+    add_default_fonts()
     app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
