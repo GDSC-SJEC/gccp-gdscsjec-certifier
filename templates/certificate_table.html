@@ -19,7 +19,7 @@
                         <span class="text" id="bulk-cerify-text">Bulk Certify</span>
                     </a>
 
-                    <a class="btn btn-success btn-icon-split" id="import_certificate" style="cursor: pointer;visibility: hidden" onclick="bulkCertify('{{BULK_CERTIFY_URL}}' ,'{{grp_id}}')">
+                    <a class="btn btn-success btn-icon-split" id="download_certificate" style="cursor: pointer;visibility: hidden">
                         <span class="text" id="bulk-cerify-text">Download Certificates</span>
                     </a>
 
@@ -122,8 +122,10 @@
     }
 
     window.onload = function() {
-        {% if not zip_url %}
-              console.log("zip url absent")  
+        {% if zip_url %}
+            const  download_certificate = document.getElementById("download_certificate")
+            download_certificate.style.visibility = "visible"
+            download_certificate.href = "{{ zip_url }}"
         {% endif %}
     }
 </script>

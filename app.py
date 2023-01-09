@@ -178,7 +178,6 @@ def view_org_page():
 def view_certificate_page(grp_id):
     post = Certificate.query.filter_by(group_id=grp_id).order_by(Certificate.id)
     group = Group.query.filter_by(id=grp_id).first()
-    print(group.zip_url)
     return render_template('certificate_table.html', post=post, grp_id=grp_id, BULK_CERTIFY_URL=BULK_CERTIFY_URL, zip_url=group.zip_url)
 
 
@@ -303,14 +302,29 @@ def massGenerate(groupno):
 @app.route("/download-zip/<string:groupno>")
 def downloadzip(groupno):
     storage_client = storage.Client()
-    zipper = ZipFile(f"{os.getcwd()}/certificates.zip", 'w')
+    zipper = ZipFile(f"certificates_{groupno}.zip", 'w')
     for blob in storage_client.list_blobs(CLOUD_STORAGE_BUCKET, prefix=groupno):
-        print(blob.name)
-        blob.download_to_filename(f"{blob.name}.png")
-        zipper.write(f"{blob.name}.png")
+        if blob.name.endswith(".zip"):
+            continue
+        name = blob.name.split("/")[1]
+        blob.download_to_filename(f"{name}")
+        zipper.write(f"{name}")
 
     zipper.close()
-    return send_from_directory(os.getcwd(), "certificates.zip", as_attachment=True)
+
+    bucket = storage_client.bucket(CLOUD_STORAGE_BUCKET)
+    blob = bucket.blob(f"{groupno}/certificates_{groupno}.zip")
+    blob.upload_from_filename(f"certificates_{groupno}.zip")
+    print(blob.public_url)
+    return jsonify({"certificate_url": blob.public_url })
+
+@app.route("/update-zip-url/<string:group_no>", methods=["PUT"])
+def update_zip_url(group_no):
+    group = Group.query.filter_by(id=group_no).first()
+    zip_url = request.args.get("zip_url")
+    group.zip_url = zip_url
+    db.session.commit()
+    return "", 201
 
 def add_default_fonts():
     total = len(Fonts.query.all())
