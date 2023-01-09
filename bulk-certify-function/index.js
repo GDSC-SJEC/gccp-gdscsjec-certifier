@@ -4,8 +4,8 @@ const puppeteer = require('puppeteer')
 //const fs = require("fs/promises")
 const {Storage} = require('@google-cloud/storage');
 const axios = require("axios")
+const AdmZip = require("adm-zip");
 
-// Register an HTTP function with the Functions Framework
 functions.http('bulkcertify', async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
 
@@ -44,5 +44,40 @@ functions.http('bulkcertify', async (req, res) => {
           } 
         
         res.send('Hello, cert');
+    }
+});
+
+functions.http('downloadZip', async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+
+    if (req.method === 'OPTIONS') {
+        // Send response to OPTIONS requests
+        res.set('Access-Control-Allow-Methods', 'GET');
+        res.set('Access-Control-Allow-Headers', 'Content-Type');
+        res.set('Access-Control-Max-Age', '3600');
+        res.status(204).send('');
+    } else {
+        const group_no = req.query.group_no
+        console.log(`Downloading Certificates of Group: ${group_no}`)
+
+        const storage = new Storage({
+            projectId: process.env.PROJECT_ID
+        });
+        const bucket = storage.bucket(process.env.CLOUD_STORAGE_BUCKET);
+
+        const zip = new AdmZip();
+
+        const options = {
+            prefix: group_no,
+        };
+        const [certificates] = await bucket.getFiles(options);
+
+        for(i=0;i<certificates.length;i++) {
+            const certificate = await certificates[i].download()
+            zip.addFile(certificate.name, certificate);
+        }
+        
+        res.type('application/zip')
+        return res.end(zip.toBuffer());
     }
 });

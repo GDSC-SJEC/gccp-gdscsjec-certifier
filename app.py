@@ -4,12 +4,14 @@ import datetime, os
 import json
 import csv
 import io
+from google.cloud import storage
 
 from dotenv import load_dotenv
 load_dotenv()
 
 APP_URL = os.environ.get("APP_URL", "test")
 BULK_CERTIFY_URL = os.environ.get("BULK_CERTIFY_URL", "test")
+CLOUD_STORAGE_BUCKET=os.environ.get("CLOUD_STORAGE_BUCKET", "test")
 
 app = Flask(__name__)
 
@@ -205,46 +207,6 @@ def edit_certificates_page(grp_id, id):
                     post = Certificate(name=name, number=number, email=email, coursename=coursename, group_id=grp_id)
                     db.session.add(post)
                     db.session.commit()
-                    # Create QR Code for this certificate
-                    # link = f'{config("site_url")}/certify/{number}'
-                    # new_qr = QRCode(certificate_num=number, link=link)
-                    # qr_image = qrcode.QRCode(version=1, box_size=10, border=5)
-                    # qr_image.add_data(link)
-                    # qr_image.make(fit=True)
-                    # img = qr_image.make_image(fill='black', back_color='white')
-                    # buffer = io.BytesIO()
-                    # img.save(buffer, format="PNG")
-                    # buffer.seek(0)
-                    # try:
-                    #     if not app.debug:
-                    #         # upload_image(buffer, number=number,
-                    #         #              folder="qr_codes")
-                    #         # img_url = f"https://cgv.s3.us-east-2.amazonaws.com/qr_codes/{number}.png"
-                    #         # img_url = upload(buffer)
-                    #     else:
-                    #         try:
-                    #             os.mkdir("static/qr_codes")
-                    #         except Exception:
-                    #             pass
-                    #         img.save("static/qr_codes/"+f"{number}.png")
-                    #         img_url = f"http://127.0.0.1:5000/static/qr_codes/{number}.png"
-                    #     new_qr.qr_code = f"{img_url}"
-                    #     new_qr.certificate_id = post.id
-                    #     db.session.add(new_qr)
-                    #     db.session.commit()
-                    # except Exception as e:
-                    #     print(e)
-                    # subject = f"Certificate Generated With Certificate Number : {number}"
-                    # email_sent = send_email_now(email, subject, 'certificate-bot@cgv.in.net', 'Certificate Generate Bot CGV',
-                    #                             'emails/new-certificate.html', number=str(number), name=name, site_url=config("site_url"))
-                    # if not email_sent:
-                    #     flash("Error while sending mail!", "danger")
-                    # else:
-                    #     post.is_email_sent = True
-                    #     db.session.add(post)
-                    #     db.session.commit()
-                    #     flash(
-                    #         "An email with certificate details has been sent!", "success")
                     return jsonify(certificate_success=True)
                 except Exception as e:
                     print(e)
@@ -283,29 +245,14 @@ def delete_certificates_page(grp_id, id):
     flash("Certificate deleted successfully!", "success")
     return redirect(f'/view/{grp_id}/certificates')
 
-
-
 @app.route("/certificate/generate/<string:certificateno>", methods=['GET', 'POST'])
 def certificate_generate(certificateno, bulkDownload = 0):
-    # if (host == True):
-    #     try:
-    #         ip_address = request.environ['HTTP_X_FORWARDED_FOR']
-    #     except KeyError:
-    #         ip_address = request.remote_addr
-    #     except Exception:
-    #         ip_address = ipc
-    # else:
-    #     ip_address = ipc
     if (request.method == 'GET'):
         bulkDownload = request.values.get('bulk', 0)
-        # certificateno = request.form.get('certificateno')
         postc = Certificate.query.filter_by(number=certificateno).first()
         if (postc != None):
             posto = Group.query.filter_by(id=postc.group_id).first()
             postf = Fonts.query.filter_by(name=posto.font_name).first()
-            # qr_code = QRCode.query.filter_by(
-            #     certificate_num=certificateno).first()
-            # img_url = qr_code.qr_code
             return render_template('certificate.html', postf=postf, postc=postc, posto=posto, number=certificateno, bulk = bulkDownload)
         elif (postc == None):
             flash("No details found. Contact your organization!", "danger")
@@ -333,35 +280,6 @@ def upload_csv(grp_id):
             number=number, name=row[0], email=row[1], coursename=row[2], group_id=grp_id)
         db.session.add(certificate)
         db.session.commit()
-        # Create QR Code for this certificate
-        # link = f'{config("site_url")}/certify/{number}'
-        # new_qr = QRCode(certificate_num=number, link=link)
-        # qr_image = qrcode.QRCode(version=1, box_size=10, border=5)
-        # qr_image.add_data(link)
-        # qr_image.make(fit=True)
-        # img = qr_image.make_image(fill='black', back_color='white')
-        # buffer = io.BytesIO()
-        # img.save(buffer, format="PNG")
-        # buffer.seek(0)
-        # try:
-        #     if not app.debug:
-        #         # upload_image(buffer, number=number, folder="qr_codes")
-        #         # img_url = f"https://cgv.s3.us-east-2.amazonaws.com/qr_codes/{number}.png"
-        #         img_url = upload(buffer)
-        #     else:
-        #         try:
-        #             os.mkdir("static/qr_codes")
-        #         except Exception:
-        #             pass
-        #         img.save("static/qr_codes/"+f"{number}.png")
-        #         img_url = f"http://127.0.0.1:5000/static/qr_codes/{number}.png"
-        #     new_qr.qr_code = f"{img_url}"
-        #     new_qr.certificate_id = certificate.id
-        #     db.session.add(new_qr)
-        #     db.session.commit()
-
-        # except Exception as e:
-        #     print(e)
     return jsonify(result=True, status=200)
 
 @app.route("/certificate/mass-generate/<string:groupno>")
@@ -381,27 +299,14 @@ def massGenerate(groupno):
 
     return jsonify(response)
 
-    # print(certnoList)
-    # print(certnoList[0].group_id)
+@app.route("/download-zip/<string:groupno>")
+def downloadzip(groupno):
+    storage_client = storage.Client()
 
-    # posto = Group.query.filter_by(id=groupno).first()
-    # postf = Fonts.query.filter_by(name=posto.font_name).first()
-
-    
-
-    # for member in certnoList:
-    #     # page = render_template("certificate.html", postf=postf, postc=member, posto=posto, number=member.number, bulk = 1)
-    #     # print(type(page))
-    #     # return redirect(url_for(certificate_generate(), postf=postf, postc=member, posto=posto, number=member.number, bulk = 1))
-    #     webbrowser.open(
-    #         f"http://127.0.0.1:5000/certificate/generate/{member.number}"
-    #     )
-    #     sleep(2)
-
-    
-
-
-    # return "All Files Downloaded"
+    for blob in storage_client.list_blobs(CLOUD_STORAGE_BUCKET, prefix=groupno):
+        print(blob.name)
+        blob.download_to_filename("1.png")
+    return "Hello"
 
 if __name__ == '__main__':
     db.create_all()
