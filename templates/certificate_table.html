@@ -16,7 +16,11 @@
                                         <span class="text">Add Certificate</span>
                         </a>
                     <a class="btn btn-success btn-icon-split" id="import_certificate" style="cursor: pointer" onclick="bulkCertify('{{BULK_CERTIFY_URL}}' ,'{{grp_id}}')">
-                        <span class="text">Bulk Certify</span>
+                        <span class="text" id="bulk-cerify-text">Bulk Certify</span>
+                    </a>
+
+                    <a class="btn btn-success btn-icon-split" id="import_certificate" style="cursor: pointer;visibility: hidden" onclick="bulkCertify('{{BULK_CERTIFY_URL}}' ,'{{grp_id}}')">
+                        <span class="text" id="bulk-cerify-text">Download Certificates</span>
                     </a>
 
                     <a class="btn btn-success btn-icon-split float-right" id="import_certificate" style="cursor: pointer" onclick="uploadFile('{{grp_id}}')">
@@ -115,6 +119,12 @@
             showConfirmButton: false,
             focusConfirm: false,
             })
+    }
+
+    window.onload = function() {
+        {% if not zip_url %}
+              console.log("zip url absent")  
+        {% endif %}
     }
 </script>
                         

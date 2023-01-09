@@ -829,6 +829,11 @@ $("#add_font").click(function (e) {
 
 // Bulk Certify
 function bulkCertify(BULK_CERTIFY_URL, group_no) {
+  const import_certificate_a = document.getElementById("import_certificate")
+  import_certificate_a.onclick = "this.onclick=function(){return false}"
+  const bulk_certify_text = document.getElementById("bulk-cerify-text")
+  bulk_certify_text.textContent = "Bulk Certification in process"
+  return
   console.log(BULK_CERTIFY_URL)
   console.log(group_no)
   console.log("Calling Bulk Certify")

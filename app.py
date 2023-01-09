@@ -55,6 +55,7 @@ class Group(db.Model):
     certnox = db.Column(db.Integer, nullable=False)
     certnoy = db.Column(db.Integer, nullable=False)
     prefix = db.Column(db.String(20), default='CGV')
+    zip_url = db.Column(db.String(500), default=None)
     # user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     certificates = db.relationship(
         'Certificate', cascade="all,delete", backref='certificates')
@@ -68,8 +69,13 @@ class QRCode(db.Model):
     qr_code = db.Column(db.String(100), nullable=True)
     certificate_id = db.Column(db.Integer, db.ForeignKey('certificate.id'))
 
-app.app_context().push()
-db.create_all()
+def insert_fonts():
+    font1 = Fonts(name='Times New Roman', font_cdn='https://fonts.cdnfonts.com/css/times-new-roman')
+    font2 = Fonts(name='Open Sans', font_cdn='https://fonts.cdnfonts.com/css/open-sans')
+    db.session.add(font1)
+    db.session.add(font2)
+    db.session.commit()
+
 
 @app.route("/")
 def dashboard_page():
@@ -177,7 +183,9 @@ def view_org_page():
 @app.route("/view/<string:grp_id>/certificates", methods=['GET', 'POST'])
 def view_certificate_page(grp_id):
     post = Certificate.query.filter_by(group_id=grp_id).order_by(Certificate.id)
-    return render_template('certificate_table.html', post=post, grp_id=grp_id, BULK_CERTIFY_URL=BULK_CERTIFY_URL)
+    group = Group.query.filter_by(id=grp_id).first()
+    print(group.zip_url)
+    return render_template('certificate_table.html', post=post, grp_id=grp_id, BULK_CERTIFY_URL=BULK_CERTIFY_URL, zip_url=group.zip_url)
 
 
 @app.route("/edit/<string:grp_id>/certificates/<string:id>", methods=['GET', 'POST'])
@@ -285,7 +293,6 @@ def upload_csv(grp_id):
 @app.route("/certificate/mass-generate/<string:groupno>")
 def massGenerate(groupno):
     certificate_list = Certificate.query.filter_by(group_id = groupno).limit(3).all()
-
     response = {}
 
     response["group_no"] = groupno
@@ -310,4 +317,5 @@ def downloadzip(groupno):
 
 if __name__ == '__main__':
     db.create_all()
+    insert_fonts()
     app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
