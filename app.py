@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, request, flash, url_for, jsonify, abort, send_from_directory, make_response
+from flask import Flask, render_template, redirect, request, flash, url_for, jsonify, abort, send_from_directory, make_response, send_file
 from flask_sqlalchemy import SQLAlchemy
 import datetime, os
 import json
@@ -6,6 +6,7 @@ import csv
 import io
 from google.cloud import storage
 from zipfile import ZipFile
+import requests
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -299,24 +300,25 @@ def massGenerate(groupno):
 
     return jsonify(response)
 
-@app.route("/download-zip/<string:groupno>")
+@app.route("/download-zip/<string:groupno>", methods=['POST'])
 def downloadzip(groupno):
-    storage_client = storage.Client()
+    request_data = request.get_json()
+    certificate_public_urls = request_data["certificate_public_urls"]
+
+    print(certificate_public_urls)
+
     zipper = ZipFile(f"certificates_{groupno}.zip", 'w')
-    for blob in storage_client.list_blobs(CLOUD_STORAGE_BUCKET, prefix=groupno):
-        if blob.name.endswith(".zip"):
-            continue
-        name = blob.name.split("/")[1]
-        blob.download_to_filename(f"{name}")
-        zipper.write(f"{name}")
+
+    for certificate in certificate_public_urls:
+        r = requests.get(certificate, allow_redirects=True)
+        filename = certificate.split("%2F")[-1]
+        with open(filename, 'wb') as f:
+            f.write(r.content)
+        zipper.write(filename)
 
     zipper.close()
 
-    bucket = storage_client.bucket(CLOUD_STORAGE_BUCKET)
-    blob = bucket.blob(f"{groupno}/certificates_{groupno}.zip")
-    blob.upload_from_filename(f"certificates_{groupno}.zip")
-    print(blob.public_url)
-    return jsonify({"certificate_url": blob.public_url })
+    return send_file(f"certificates_{groupno}.zip", mimetype="application/zip", as_attachment=True, attachment_filename=f"certificates_{groupno}.zip")
 
 @app.route("/update-zip-url/<string:group_no>", methods=["PUT"])
 def update_zip_url(group_no):

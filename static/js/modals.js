@@ -833,9 +833,7 @@ function bulkCertify(BULK_CERTIFY_URL, group_no) {
   import_certificate_a.onclick = "this.onclick=function(){return false}"
   const bulk_certify_text = document.getElementById("bulk-cerify-text")
   bulk_certify_text.textContent = "Bulk Certification in process"
-  console.log(BULK_CERTIFY_URL)
-  console.log(group_no)
-  console.log("Calling Bulk Certify")
+
   fetch(BULK_CERTIFY_URL + "?group_no=" + group_no, {
     method: "GET",
   })
@@ -847,8 +845,6 @@ function bulkCertify(BULK_CERTIFY_URL, group_no) {
       bulk_certify_text.textContent = "Bulk Certify"
       const  download_certificate = document.getElementById("download_certificate")
       download_certificate.style.visibility = "visible"
-      download_certificate.href = data.certificate_url
-      console.log(data)
-      console.log("Bulk certify done")
+      download_certificate.href = data.certificate_url.replace("%2F", "/")
 })
 }

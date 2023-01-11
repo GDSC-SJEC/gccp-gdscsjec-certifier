@@ -30,7 +30,6 @@ functions.http('bulkcertify', async (req, res) => {
 
         for (i = 0; i < certicates_list.length; i++) {
             const certificate = certicates_list[i]
-            console.log(bucket.name)
             console.log(certificate)
             const page = await browser.newPage();
             await page.goto(certificate.certficate_link);
@@ -42,17 +41,21 @@ functions.http('bulkcertify', async (req, res) => {
             
             certificate_public_urls.push(file.publicUrl())
 
-            //await fs.writeFile(`${certificate.certificate_no}.png`, certificate_base64, "base64")
             console.log(`Uploaded ${certificate.certificate_no}`)
           } 
         
         console.log(certificate_public_urls)
-        const certificate_url_response = await axios.post(process.env.API_URL + "/download-zip/" + group_no, {
+        const zipfile_response = await axios.post(process.env.API_URL + "/download-zip/" + group_no, {
             certificate_public_urls: certificate_public_urls
+        }, {
+            responseType: 'arraybuffer'
         })
-        
-        await axios.put(process.env.API_URL + "/update-zip-url/" + group_no + "?zip_url=" + certificate_url_response.data.certificate_url)
-
-        res.json({certificate_url: certificate_url_response.data.certificate_url})
+        const zipfile = bucket.file(`${group_no}/certificates_${group_no}.zip`);
+        console.log(`Received certificates_${group_no}.zip`)
+        await zipfile.save(zipfile_response.data)
+        console.log(`Uploaded certificates_${group_no}.zip`)
+        await axios.put(process.env.API_URL + "/update-zip-url/" + group_no + "?zip_url=" + zipfile.publicUrl())
+        console.log("Updated Certificate download url")
+        res.json({certificate_url: zipfile.publicUrl()})
     }
 });
