@@ -26,6 +26,8 @@ functions.http('bulkcertify', async (req, res) => {
         });
         const bucket = storage.bucket(process.env.CLOUD_STORAGE_BUCKET);
 
+        const certificate_public_urls = []
+
         for (i = 0; i < certicates_list.length; i++) {
             const certificate = certicates_list[i]
             console.log(bucket.name)
@@ -38,12 +40,17 @@ functions.http('bulkcertify', async (req, res) => {
             const file = bucket.file(`${group_no}/${certificate.certificate_no}.png`);
             await file.save(Buffer.from(certificate_base64, 'base64'))
             
+            certificate_public_urls.push(file.publicUrl())
+
             //await fs.writeFile(`${certificate.certificate_no}.png`, certificate_base64, "base64")
             console.log(`Uploaded ${certificate.certificate_no}`)
           } 
         
-        const certificate_url_response = await axios.get(process.env.API_URL + "/download-zip/" + group_no)
-
+        console.log(certificate_public_urls)
+        const certificate_url_response = await axios.post(process.env.API_URL + "/download-zip/" + group_no, {
+            certificate_public_urls: certificate_public_urls
+        })
+        
         await axios.put(process.env.API_URL + "/update-zip-url/" + group_no + "?zip_url=" + certificate_url_response.data.certificate_url)
 
         res.json({certificate_url: certificate_url_response.data.certificate_url})
